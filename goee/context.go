@@ -16,9 +16,10 @@ type Context struct {
 	Req    *http.Request
 
 	// request info
-	Path   string
-	Method string
-	Params map[string]string
+	Path     string
+	Method   string
+	Params   map[string]string
+	isStatic bool //是否静态文件请求
 	// response info
 	StatusCode int
 	// middleware

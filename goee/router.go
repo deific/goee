@@ -36,7 +36,7 @@ func parsePattern(pattern string) []string {
 }
 
 // 添加路由
-func (r *router) addRouter(method string, pattern string, handler HandlerFunc) {
+func (r *router) addRouter(method string, pattern string, isStatic bool, handler HandlerFunc) {
 	// 解析
 	parts := parsePattern(pattern)
 
@@ -47,7 +47,7 @@ func (r *router) addRouter(method string, pattern string, handler HandlerFunc) {
 		r.roots[method] = &node{}
 	}
 	// 插入路由
-	r.roots[method].insert(pattern, parts, 0)
+	r.roots[method].insert(pattern, parts, isStatic, 0)
 	r.handlers[key] = handler
 }
 
@@ -90,9 +90,16 @@ func (r *router) handle(c *Context) {
 	n, params := r.getRouter(c.Method, c.Path)
 	if n != nil {
 		c.Params = params
+		c.isStatic = n.isStatic
 		key := c.Method + ":" + n.pattern
-		// 添加中间件的处理
-		c.handlers = append(c.handlers, r.handlers[key])
+		bizHandler := r.handlers[key]
+		if n.isStatic {
+			// 静态路由直接交由业务处理器
+			c.handlers = append(c.handlers[0:1], bizHandler)
+		} else {
+			// 将业务处理器追加到中间件后
+			c.handlers = append(c.handlers, bizHandler)
+		}
 	} else {
 		// 添加中间件的处理
 		c.handlers = append(c.handlers, func(context *Context) {

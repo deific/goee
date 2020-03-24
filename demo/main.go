@@ -18,6 +18,9 @@ func main() {
 	// 注册中间件
 	g.Use(gm.Logger(), gm.Limit())
 
+	// 注册静态文件处理
+	g.Static("/static", "E:/temp/static")
+
 	// 注册路由分组
 	v1 := g.Group("/v1")
 	v1.GET("/hello", func(c *goee.Context) {

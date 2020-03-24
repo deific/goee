@@ -3,6 +3,7 @@ package goee
 import (
 	"log"
 	"net/http"
+	"path"
 	"strings"
 )
 
@@ -57,6 +58,32 @@ func (group *RouterGroup) Use(middleware ...HandlerFunc) {
 	group.middlewares = append(group.middlewares, middleware...)
 }
 
+// 创建static处理
+// 使用中间件函数
+func (group *RouterGroup) createStaticHandler(relativePath string, fs http.FileSystem) HandlerFunc {
+	// 绝对路径
+	absolutePath := path.Join(group.prefix, relativePath)
+	// 文件服务器
+	fileServer := http.StripPrefix(absolutePath, http.FileServer(fs))
+	return func(c *Context) {
+		file := c.Param("filePath")
+		// Check if file exist and/or if we have permission to access
+		if _, err := fs.Open(file); err != nil {
+			c.Status(http.StatusNotFound)
+			return
+		}
+		// 返回文件服务
+		fileServer.ServeHTTP(c.Writer, c.Req)
+	}
+}
+
+// 设置静态文件目录
+func (group *RouterGroup) Static(relativePath string, root string) {
+	handler := group.createStaticHandler(relativePath, http.Dir(root))
+	urlPattern := path.Join(relativePath, "/*filepath")
+	group.addRoute("GET", urlPattern, true, handler)
+}
+
 // 设置全局过滤器
 func (e *Engine) Filter(filter ...Filter) {
 	e.filters = append(e.filters, filter...)
@@ -65,7 +92,7 @@ func (e *Engine) Filter(filter ...Filter) {
 // 执行过滤器
 func (e Engine) DoFilter(c *Context) {
 	c.filterPos++
-	if c.filterPos < len(e.filters) {
+	if !c.isStatic && c.filterPos < len(e.filters) {
 		e.filters[c.filterPos].DoFilter(c, e)
 	} else {
 		c.Next()
@@ -73,22 +100,22 @@ func (e Engine) DoFilter(c *Context) {
 }
 
 // 添加路由
-func (group *RouterGroup) addRoute(method string, comp string, handler HandlerFunc) *RouterGroup {
+func (group *RouterGroup) addRoute(method string, comp string, isStatic bool, handler HandlerFunc) *RouterGroup {
 	pattern := group.prefix + comp
 	log.Printf("Add Route %4s - %s", method, pattern)
-	group.engine.router.addRouter(method, pattern, handler)
+	group.engine.router.addRouter(method, pattern, isStatic, handler)
 	return group
 }
 
 // Get define the method of GET to add router
 func (group *RouterGroup) GET(patten string, handler HandlerFunc) *RouterGroup {
-	group.addRoute("GET", patten, handler)
+	group.addRoute("GET", patten, false, handler)
 	return group
 }
 
 // Post define the method of GET to add router
 func (group *RouterGroup) POST(patten string, handler HandlerFunc) *RouterGroup {
-	group.addRoute("POST", patten, handler)
+	group.addRoute("POST", patten, false, handler)
 	return group
 }
 
@@ -102,6 +129,7 @@ func (engine *Engine) Run(addr string) (err error) {
 // 实现http.Handler接口
 func (engine *Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var middlewares []HandlerFunc
+	c := newContext(w, r, engine)
 
 	for _, group := range engine.groups {
 		// 如果请求符合某一组
@@ -109,10 +137,7 @@ func (engine *Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			middlewares = append(middlewares, group.middlewares...)
 		}
 	}
-
-	c := newContext(w, r, engine)
 	c.handlers = middlewares
 	// 执行路由
 	engine.router.handle(c)
-
 }
