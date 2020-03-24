@@ -86,13 +86,19 @@ func (r *router) getRouter(method string, pattern string) (*node, map[string]str
 
 // 处理
 func (r *router) handle(c *Context) {
-
+	// 获取路由
 	n, params := r.getRouter(c.Method, c.Path)
 	if n != nil {
 		c.Params = params
 		key := c.Method + ":" + n.pattern
-		r.handlers[key](c)
+		// 添加中间件的处理
+		c.handlers = append(c.handlers, r.handlers[key])
 	} else {
-		c.String(http.StatusNotFound, "404 NOT FOUND:%s\n", c.Path)
+		// 添加中间件的处理
+		c.handlers = append(c.handlers, func(context *Context) {
+			c.String(http.StatusNotFound, "404 NOT FOUND:%s\n", c.Path)
+		})
 	}
+	// 执行处理
+	c.filterChain.DoFilter(c)
 }

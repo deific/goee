@@ -39,7 +39,10 @@ func (n *node) matchChildren(part string) []*node {
 func (n *node) insert(pattern string, parts []string, height int) {
 	// 如果树的高度和节点路由部分长度一致，说明已到叶子节点，直接返回
 	if len(parts) == height {
-		n.pattern = pattern
+		// 如果该节点pattern为空，则赋值，否则说明已存在，不允许覆盖
+		if n.pattern == "" {
+			n.pattern = pattern
+		}
 		return
 	}
 

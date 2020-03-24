@@ -21,17 +21,32 @@ type Context struct {
 	Params map[string]string
 	// response info
 	StatusCode int
+	// middleware
+	handlers []HandlerFunc
+	index    int
+	// 过滤器执行索引
+	filterChain Chain
+	filterPos   int
 }
 
 // 创建新的上下文
-func newContext(w http.ResponseWriter, r *http.Request) *Context {
+func newContext(w http.ResponseWriter, r *http.Request, c Chain) *Context {
 	return &Context{
-		Writer:     w,
-		Req:        r,
-		Path:       r.URL.Path,
-		Method:     r.Method,
-		StatusCode: 200,
+		Writer:      w,
+		Req:         r,
+		Path:        r.URL.Path,
+		Method:      r.Method,
+		StatusCode:  200,
+		index:       -1,
+		filterChain: c,
+		filterPos:   -1,
 	}
+}
+
+// 中间调用链
+func (c *Context) Next() {
+	c.index++
+	c.handlers[c.index](c)
 }
 
 // 获取url参数
