@@ -1,7 +1,7 @@
 package goee
 
 import (
-	"goee/core"
+	"github.com/deific/goee/core"
 	"net/http"
 	"strings"
 )

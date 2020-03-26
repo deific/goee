@@ -1,8 +1,8 @@
 package main
 
 import (
-	"goee"
-	"goee/core"
+	"github.com/deific/goee"
+	"github.com/deific/goee/core"
 	"log"
 	"net/http"
 	"time"

@@ -3,7 +3,7 @@ package core
 import (
 	"encoding/json"
 	"fmt"
-	render2 "goee/render"
+	render2 "github.com/deific/goee/render"
 	"net/http"
 )
 

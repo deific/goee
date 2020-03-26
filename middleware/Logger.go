@@ -1,7 +1,7 @@
 package gm
 
 import (
-	"goee/core"
+	"github.com/deific/goee/core"
 	"log"
 	"time"
 )

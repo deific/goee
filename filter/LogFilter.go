@@ -1,7 +1,7 @@
 package filter
 
 import (
-	"goee/core"
+	"github.com/deific/goee/core"
 	"log"
 )
 

@@ -1,10 +1,10 @@
 package goee
 
 import (
-	"goee/core"
-	"goee/filter"
-	gm "goee/middleware"
-	render2 "goee/render"
+	"github.com/deific/goee/core"
+	"github.com/deific/goee/filter"
+	gm "github.com/deific/goee/middleware"
+	render2 "github.com/deific/goee/render"
 	"html/template"
 	"log"
 	"net/http"

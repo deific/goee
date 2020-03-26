@@ -2,6 +2,4 @@ module demo
 
 go 1.13
 
-require goee v0.0.0
-
-replace goee => ../../goee
+require github.com/deific/goee v0.1.0

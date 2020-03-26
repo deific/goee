@@ -2,7 +2,7 @@ package goee
 
 import (
 	"fmt"
-	"goee/core"
+	"github.com/deific/goee/core"
 	"log"
 	"net/http"
 	"runtime"
