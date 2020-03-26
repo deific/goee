@@ -1,6 +1,7 @@
 package goee
 
 import (
+	"goee/core"
 	"net/http"
 	"strings"
 )
@@ -8,14 +9,14 @@ import (
 // 路由结构体
 type router struct {
 	roots    map[string]*node // 路由树,例如：roots["GET"],roots["POST"]
-	handlers map[string]HandlerFunc
+	handlers map[string]core.HandlerFunc
 }
 
 // 创建一个路由器
 func newRouter() *router {
 	return &router{
 		roots:    make(map[string]*node),
-		handlers: make(map[string]HandlerFunc),
+		handlers: make(map[string]core.HandlerFunc),
 	}
 }
 
@@ -36,7 +37,7 @@ func parsePattern(pattern string) []string {
 }
 
 // 添加路由
-func (r *router) addRouter(method string, pattern string, isStatic bool, handler HandlerFunc) {
+func (r *router) addRouter(method string, pattern string, isStatic bool, handler core.HandlerFunc) {
 	// 解析
 	parts := parsePattern(pattern)
 
@@ -85,27 +86,27 @@ func (r *router) getRouter(method string, pattern string) (*node, map[string]str
 }
 
 // 处理
-func (r *router) handle(c *Context) {
+func (r *router) handle(c *core.Context) {
 	// 获取路由
 	n, params := r.getRouter(c.Method, c.Path)
 	if n != nil {
 		c.Params = params
-		c.isStatic = n.isStatic
+		c.IsStatic = n.isStatic
 		key := c.Method + ":" + n.pattern
 		bizHandler := r.handlers[key]
 		if n.isStatic {
 			// 静态路由直接交由业务处理器
-			c.handlers = append(c.handlers[0:1], bizHandler)
+			c.Handlers = append(c.Handlers[0:1], bizHandler)
 		} else {
 			// 将业务处理器追加到中间件后
-			c.handlers = append(c.handlers, bizHandler)
+			c.Handlers = append(c.Handlers, bizHandler)
 		}
 	} else {
 		// 添加中间件的处理
-		c.handlers = append(c.handlers, func(context *Context) {
+		c.Handlers = append(c.Handlers, func(context *core.Context) {
 			c.String(http.StatusNotFound, "404 NOT FOUND:%s\n", c.Path)
 		})
 	}
 	// 执行处理
-	c.filterChain.DoFilter(c)
+	c.FilterChain.DoFilter(c)
 }

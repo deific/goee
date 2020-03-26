@@ -1,14 +1,14 @@
 package gm
 
 import (
-	"goee"
+	"goee/core"
 	"log"
 	"time"
 )
 
 // 记录访问日志
-func Logger() goee.HandlerFunc {
-	return func(c *goee.Context) {
+func Logger() core.HandlerFunc {
+	return func(c *core.Context) {
 		// 开始时间
 		t := time.Now()
 		log.Print("日志中间件执行前")

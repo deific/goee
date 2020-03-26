@@ -8,11 +8,11 @@ import (
 
 func newTestRouter() *router {
 	r := newRouter()
-	r.addRouter("GET", "/", nil)
-	r.addRouter("GET", "/hello/:name/:age", nil)
-	r.addRouter("GET", "/hello/b/c", nil)
-	r.addRouter("GET", "/hi/:name", nil)
-	r.addRouter("GET", "/asserts/*filepath", nil)
+	r.addRouter("GET", "/", false, nil)
+	r.addRouter("GET", "/hello/:name/:age", false, nil)
+	r.addRouter("GET", "/hello/b/c", false, nil)
+	r.addRouter("GET", "/hi/:name", false, nil)
+	r.addRouter("GET", "/asserts/*filepath", false, nil)
 	return r
 }
 

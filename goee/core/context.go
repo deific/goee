@@ -1,8 +1,9 @@
-package goee
+package core
 
 import (
 	"encoding/json"
 	"fmt"
+	render2 "goee/render"
 	"net/http"
 )
 
@@ -19,35 +20,36 @@ type Context struct {
 	Path     string
 	Method   string
 	Params   map[string]string
-	isStatic bool //是否静态文件请求
+	IsStatic bool //是否静态文件请求
 	// response info
 	StatusCode int
 	// middleware
-	handlers []HandlerFunc
+	Handlers []HandlerFunc
 	index    int
 	// 过滤器执行索引
-	filterChain Chain
-	filterPos   int
+	FilterChain Chain
+	FilterPos   int
+	// 引擎实例
+	Render render2.Render
 }
 
 // 创建新的上下文
-func newContext(w http.ResponseWriter, r *http.Request, c Chain) *Context {
+func NewContext(w http.ResponseWriter, r *http.Request) *Context {
 	return &Context{
-		Writer:      w,
-		Req:         r,
-		Path:        r.URL.Path,
-		Method:      r.Method,
-		StatusCode:  200,
-		index:       -1,
-		filterChain: c,
-		filterPos:   -1,
+		Writer:     w,
+		Req:        r,
+		Path:       r.URL.Path,
+		Method:     r.Method,
+		StatusCode: 200,
+		index:      -1,
+		FilterPos:  -1,
 	}
 }
 
 // 中间调用链
 func (c *Context) Next() {
 	c.index++
-	c.handlers[c.index](c)
+	c.Handlers[c.index](c)
 }
 
 // 获取url参数
@@ -98,4 +100,15 @@ func (c *Context) HTML(code int, html string) {
 	c.setHeader("Content-Type", "text/html")
 	c.Status(code)
 	c.Writer.Write([]byte(html))
+}
+
+// html模板渲染
+func (c *Context) HtmlTemplate(code int, name string, data interface{}) {
+	c.setHeader("Content-Type", "text/html;charset=utf8")
+	c.Status(code)
+	// 使用模板渲染
+	if err := c.Render.GetHtmlTemplates().ExecuteTemplate(c.Writer, name, data); err != nil {
+		c.Status(http.StatusInternalServerError)
+		c.Writer.Write([]byte(err.Error()))
+	}
 }

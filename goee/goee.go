@@ -1,6 +1,11 @@
 package goee
 
 import (
+	"goee/core"
+	"goee/filter"
+	gm "goee/middleware"
+	render2 "goee/render"
+	"html/template"
 	"log"
 	"net/http"
 	"path"
@@ -9,15 +14,11 @@ import (
 
 // 定义路由分组
 type RouterGroup struct {
-	prefix      string        // 路由前缀
-	middlewares []HandlerFunc // 中间件
-	parent      *RouterGroup  // 父组
-	engine      *Engine       // 引擎实例
+	prefix      string             // 路由前缀
+	middlewares []core.HandlerFunc // 中间件
+	parent      *RouterGroup       // 父组
+	engine      *Engine            // 引擎实例
 }
-
-// HandlerFunc defines the request handler user by goee
-// 定义框架处理请求的处理器类型
-type HandlerFunc func(*Context)
 
 // Engine implement the interface of http.ServerHttp
 // 定义引擎,最终实现ServerHttp接口
@@ -28,7 +29,9 @@ type Engine struct {
 	// 路由分组
 	groups []*RouterGroup
 	// 全局过滤器
-	filters []Filter
+	filters []core.Filter
+	// html模板
+	render render2.Render
 }
 
 // New is the constructor of gooee.Engine
@@ -36,8 +39,29 @@ func New() *Engine {
 	e := &Engine{router: newRouter()}
 	// 保存实例
 	e.RouterGroup = &RouterGroup{engine: e}
+	e.render = render2.New()
 	e.groups = []*RouterGroup{e.RouterGroup}
 	return e
+}
+
+// default Engine
+func Default() *Engine {
+	e := New()
+	// 注册默认过滤器
+	e.Filter(filter.LogFilter())
+	// 注册默认中间件
+	e.Use(gm.Logger(), Recovery(), gm.Limit())
+	return e
+}
+
+// set function map
+func (engine *Engine) SetFuncMap(funcMap template.FuncMap) {
+	engine.render.SetFuncMap(funcMap)
+}
+
+// set function map
+func (engine *Engine) LoadHtmlTemplate(pattern string) {
+	engine.render.SetHtmlTemplates(template.Must(template.New("").Funcs(engine.render.GetFuncMap()).ParseGlob(pattern)))
 }
 
 // Group is defined to create a new RouterGroup
@@ -54,18 +78,18 @@ func (group *RouterGroup) Group(prefix string) *RouterGroup {
 }
 
 // 使用中间件函数
-func (group *RouterGroup) Use(middleware ...HandlerFunc) {
+func (group *RouterGroup) Use(middleware ...core.HandlerFunc) {
 	group.middlewares = append(group.middlewares, middleware...)
 }
 
 // 创建static处理
 // 使用中间件函数
-func (group *RouterGroup) createStaticHandler(relativePath string, fs http.FileSystem) HandlerFunc {
+func (group *RouterGroup) createStaticHandler(relativePath string, fs http.FileSystem) core.HandlerFunc {
 	// 绝对路径
 	absolutePath := path.Join(group.prefix, relativePath)
 	// 文件服务器
 	fileServer := http.StripPrefix(absolutePath, http.FileServer(fs))
-	return func(c *Context) {
+	return func(c *core.Context) {
 		file := c.Param("filePath")
 		// Check if file exist and/or if we have permission to access
 		if _, err := fs.Open(file); err != nil {
@@ -85,22 +109,22 @@ func (group *RouterGroup) Static(relativePath string, root string) {
 }
 
 // 设置全局过滤器
-func (e *Engine) Filter(filter ...Filter) {
+func (e *Engine) Filter(filter ...core.Filter) {
 	e.filters = append(e.filters, filter...)
 }
 
 // 执行过滤器
-func (e Engine) DoFilter(c *Context) {
-	c.filterPos++
-	if !c.isStatic && c.filterPos < len(e.filters) {
-		e.filters[c.filterPos].DoFilter(c, e)
+func (e Engine) DoFilter(c *core.Context) {
+	c.FilterPos++
+	if !c.IsStatic && c.FilterPos < len(e.filters) {
+		e.filters[c.FilterPos].DoFilter(c, e)
 	} else {
 		c.Next()
 	}
 }
 
 // 添加路由
-func (group *RouterGroup) addRoute(method string, comp string, isStatic bool, handler HandlerFunc) *RouterGroup {
+func (group *RouterGroup) addRoute(method string, comp string, isStatic bool, handler core.HandlerFunc) *RouterGroup {
 	pattern := group.prefix + comp
 	log.Printf("Add Route %4s - %s", method, pattern)
 	group.engine.router.addRouter(method, pattern, isStatic, handler)
@@ -108,13 +132,13 @@ func (group *RouterGroup) addRoute(method string, comp string, isStatic bool, ha
 }
 
 // Get define the method of GET to add router
-func (group *RouterGroup) GET(patten string, handler HandlerFunc) *RouterGroup {
+func (group *RouterGroup) GET(patten string, handler core.HandlerFunc) *RouterGroup {
 	group.addRoute("GET", patten, false, handler)
 	return group
 }
 
 // Post define the method of GET to add router
-func (group *RouterGroup) POST(patten string, handler HandlerFunc) *RouterGroup {
+func (group *RouterGroup) POST(patten string, handler core.HandlerFunc) *RouterGroup {
 	group.addRoute("POST", patten, false, handler)
 	return group
 }
@@ -128,16 +152,22 @@ func (engine *Engine) Run(addr string) (err error) {
 // implement the interface of http.ServerHttp
 // 实现http.Handler接口
 func (engine *Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	var middlewares []HandlerFunc
-	c := newContext(w, r, engine)
+	var middlewares []core.HandlerFunc
+	c := core.NewContext(w, r)
+	// 设置过滤器链
+	c.FilterChain = engine
+	// 设置引擎实例
+	c.Render = engine.render
 
+	// 识别请求url所在分组，追加分组处理中间件
 	for _, group := range engine.groups {
 		// 如果请求符合某一组
 		if strings.HasPrefix(r.URL.Path, group.prefix) {
 			middlewares = append(middlewares, group.middlewares...)
 		}
 	}
-	c.handlers = middlewares
+	// 设置中间件
+	c.Handlers = middlewares
 	// 执行路由
 	engine.router.handle(c)
 }
