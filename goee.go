@@ -1,6 +1,7 @@
 package goee
 
 import (
+	"github.com/deific/goee/config"
 	"github.com/deific/goee/core"
 	"github.com/deific/goee/filter"
 	gm "github.com/deific/goee/middleware"
@@ -24,6 +25,8 @@ type RouterGroup struct {
 // 定义引擎,最终实现ServerHttp接口
 type Engine struct {
 	*RouterGroup // 组合group,引擎也具有分组的能力
+	// 配置文件
+	conf config.Config
 	// 路由信息,使用map保存
 	router *router
 	// 路由分组
@@ -47,6 +50,8 @@ func New() *Engine {
 // default Engine
 func Default() *Engine {
 	e := New()
+	// 加载默认配置
+	e.LoadConfig("conf/goee.yaml")
 	// 注册默认过滤器
 	e.Filter(filter.LogFilter())
 	// 注册默认中间件
@@ -62,6 +67,11 @@ func (engine *Engine) SetFuncMap(funcMap template.FuncMap) {
 // set function map
 func (engine *Engine) LoadHtmlTemplate(pattern string) {
 	engine.render.SetHtmlTemplates(template.Must(template.New("").Funcs(engine.render.GetFuncMap()).ParseGlob(pattern)))
+}
+
+// 加载配置文件
+func (engine *Engine) LoadConfig(filePath string) {
+	engine.conf = config.LoadConfig(filePath)
 }
 
 // Group is defined to create a new RouterGroup
@@ -145,6 +155,13 @@ func (group *RouterGroup) POST(patten string, handler core.HandlerFunc) *RouterG
 
 // Run define the method to start a http server
 func (engine *Engine) Run(addr string) (err error) {
+	log.Println("启动服务，监听地址：", addr)
+	return http.ListenAndServe(addr, engine)
+}
+
+// Run define the method to start a http server
+func (engine *Engine) Start() (err error) {
+	addr := engine.conf.Host + ":" + engine.conf.Port
 	log.Println("启动服务，监听地址：", addr)
 	return http.ListenAndServe(addr, engine)
 }

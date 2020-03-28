@@ -13,6 +13,8 @@ func main() {
 	// 实例化
 	g := goee.Default()
 
+	// 加载配置文件
+
 	// 注册静态文件处理
 	g.Static("/static", "E:/temp/static")
 	// 加载模板
@@ -49,5 +51,6 @@ func main() {
 	})
 
 	// 启动服务
-	g.Run(":9000")
+	//g.Run(":9000")
+	g.Start()
 }

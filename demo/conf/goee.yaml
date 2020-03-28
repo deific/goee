@@ -1,0 +1,8 @@
+host: localhost
+port: 9020
+
+app-name: goee
+statics:
+  - static
+  - html
+  - public
