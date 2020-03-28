@@ -14,6 +14,7 @@ func main() {
 	g := goee.Default()
 
 	// 加载配置文件
+	g.LoadConfig("conf/goee-dev.yaml")
 
 	// 注册静态文件处理
 	g.Static("/static", "E:/temp/static")
