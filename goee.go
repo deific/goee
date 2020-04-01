@@ -162,8 +162,16 @@ func (engine *Engine) Run(addr string) (err error) {
 // Run define the method to start a http server
 func (engine *Engine) Start() (err error) {
 	addr := engine.conf.Host + ":" + engine.conf.Port
-	log.Println("启动服务，监听地址：", addr)
+	printServerInfo(addr)
 	return http.ListenAndServe(addr, engine)
+}
+
+// print server info
+func printServerInfo(addr string) {
+	log.Println("************************************")
+	log.Println("*             goee " + VERSION + "          *")
+	log.Println("************************************")
+	log.Println("启动服务，监听地址：", addr)
 }
 
 // implement the interface of http.ServerHttp
