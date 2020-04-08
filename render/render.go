@@ -50,14 +50,14 @@ func (manager *GoeeRenderManager) DoRender(renderType RenderType, write http.Res
 func (manager *GoeeRenderManager) SetHtmlTemplates(htmlTemplates *template.Template) {
 	render := manager.renders[string(HTMLTEMPLATE)]
 	// 类型断言，左侧只能是interface类型才可以，因此需要使用interface包装一下
-	htmlTplRender, isTemplateRender := interface{}(render).(HtmlTemplateRender)
-	if !isTemplateRender {
+	htmlTplRender, isTemplateRender := interface{}(render).(*HtmlTemplateRender)
+	if isTemplateRender {
 		htmlTplRender.HtmlTemplates = htmlTemplates
 	}
 }
 func (manager *GoeeRenderManager) SetFuncMap(funcMap template.FuncMap) {
 	render := manager.renders[string(HTMLTEMPLATE)]
-	htmlTplRender, isTemplateRender := interface{}(render).(HtmlTemplateRender)
+	htmlTplRender, isTemplateRender := interface{}(render).(*HtmlTemplateRender)
 	if isTemplateRender {
 		htmlTplRender.FuncMap = funcMap
 	}
@@ -65,8 +65,8 @@ func (manager *GoeeRenderManager) SetFuncMap(funcMap template.FuncMap) {
 
 func (manager *GoeeRenderManager) GetFuncMap() template.FuncMap {
 	render := manager.renders[string(HTMLTEMPLATE)]
-	htmlTplRender, isTemplateRender := interface{}(render).(HtmlTemplateRender)
-	if !isTemplateRender {
+	htmlTplRender, isTemplateRender := interface{}(render).(*HtmlTemplateRender)
+	if isTemplateRender {
 		return htmlTplRender.FuncMap
 	}
 	return nil
