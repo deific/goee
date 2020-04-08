@@ -50,6 +50,7 @@ func (manager *GoeeRenderManager) DoRender(renderType RenderType, write http.Res
 func (manager *GoeeRenderManager) SetHtmlTemplates(htmlTemplates *template.Template) {
 	render := manager.renders[string(HTMLTEMPLATE)]
 	// 类型断言，左侧只能是interface类型才可以，因此需要使用interface包装一下
+	// 如果需要断言的变量是指针，断言需要写成指针类型，即加*号，如果是值，则不需要
 	htmlTplRender, isTemplateRender := interface{}(render).(*HtmlTemplateRender)
 	if isTemplateRender {
 		htmlTplRender.HtmlTemplates = htmlTemplates
