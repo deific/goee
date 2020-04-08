@@ -13,8 +13,9 @@ type HMap map[string]interface{}
 // 上下文
 type Context struct {
 	// origin object
-	Writer http.ResponseWriter
-	Req    *http.Request
+	Writer        http.ResponseWriter
+	Req           *http.Request
+	RenderManager *render2.GoeeRenderManager
 
 	// request info
 	Path     string
@@ -29,8 +30,6 @@ type Context struct {
 	// 过滤器执行索引
 	FilterChain Chain
 	FilterPos   int
-	// 引擎实例
-	Render render2.Render
 }
 
 // 创建新的上下文
@@ -97,18 +96,11 @@ func (c *Context) JSON(code int, obj interface{}) {
 
 // html渲染
 func (c *Context) HTML(code int, html string) {
-	c.setHeader("Content-Type", "text/html")
-	c.Status(code)
-	c.Writer.Write([]byte(html))
+	c.RenderManager.DoRender(render2.HTML, c.Writer, code, html, "")
 }
 
 // html模板渲染
 func (c *Context) HtmlTemplate(code int, name string, data interface{}) {
-	c.setHeader("Content-Type", "text/html;charset=utf8")
-	c.Status(code)
 	// 使用模板渲染
-	if err := c.Render.GetHtmlTemplates().ExecuteTemplate(c.Writer, name, data); err != nil {
-		c.Status(http.StatusInternalServerError)
-		c.Writer.Write([]byte(err.Error()))
-	}
+	c.RenderManager.DoRender(render2.HTMLTEMPLATE, c.Writer, code, data, name)
 }

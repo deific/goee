@@ -34,7 +34,7 @@ type Engine struct {
 	// 全局过滤器
 	filters []core.Filter
 	// html模板
-	render render2.Render
+	renderManager *render2.GoeeRenderManager
 }
 
 // New is the constructor of gooee.Engine
@@ -42,7 +42,9 @@ func New() *Engine {
 	e := &Engine{router: newRouter()}
 	// 保存实例
 	e.RouterGroup = &RouterGroup{engine: e}
-	e.render = render2.New()
+	// 渲染管理器
+	e.renderManager = render2.New()
+
 	e.groups = []*RouterGroup{e.RouterGroup}
 	return e
 }
@@ -61,12 +63,12 @@ func Default() *Engine {
 
 // set function map
 func (engine *Engine) SetFuncMap(funcMap template.FuncMap) {
-	engine.render.SetFuncMap(funcMap)
+	engine.renderManager.SetFuncMap(funcMap)
 }
 
 // set function map
 func (engine *Engine) LoadHtmlTemplate(pattern string) {
-	engine.render.SetHtmlTemplates(template.Must(template.New("").Funcs(engine.render.GetFuncMap()).ParseGlob(pattern)))
+	engine.renderManager.SetHtmlTemplates(template.Must(template.New("").Funcs(engine.renderManager.GetFuncMap()).ParseGlob(pattern)))
 }
 
 // 加载配置文件
@@ -181,8 +183,8 @@ func (engine *Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	c := core.NewContext(w, r)
 	// 设置过滤器链
 	c.FilterChain = engine
-	// 设置引擎实例
-	c.Render = engine.render
+	// 传递渲染器
+	c.RenderManager = engine.renderManager
 
 	// 识别请求url所在分组，追加分组处理中间件
 	for _, group := range engine.groups {
